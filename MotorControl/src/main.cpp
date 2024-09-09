@@ -15,6 +15,6 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  pwm_start(AZI_MOTOR_PWM, 10000, 50,
+  pwm_start(AZI_MOTOR_PWM, 20000, 20,
         	TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
 }
