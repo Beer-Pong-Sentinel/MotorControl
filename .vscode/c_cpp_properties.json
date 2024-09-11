@@ -1,19 +1,119 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
 {
     "configurations": [
         {
-            "name": "Mac",
+            "name": "PlatformIO",
             "includePath": [
-                "${workspaceFolder}/**",
-                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino"
+                "/Users/eldadzipori/Documents/CAPSTONE/MotorControl/include",
+                "/Users/eldadzipori/Documents/CAPSTONE/MotorControl/src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/avr",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32/LL",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32/usb",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32/OpenAMP",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32/usb/hid",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32/usb/cdc",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Drivers/STM32F1xx_HAL_Driver/Inc",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Drivers/STM32F1xx_HAL_Driver/Src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/STM32F1xx",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Middlewares/ST/STM32_USB_Device_Library/Core/Inc",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Middlewares/ST/STM32_USB_Device_Library/Core/Src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Middlewares/OpenAMP",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Middlewares/OpenAMP/open-amp/lib/include",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Middlewares/OpenAMP/libmetal/lib/include",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Middlewares/OpenAMP/virtual_driver",
+                "/Users/eldadzipori/.platformio/packages/framework-cmsis/CMSIS/Core/Include",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Drivers/CMSIS/Device/ST/STM32F1xx/Include",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Drivers/CMSIS/Device/ST/STM32F1xx/Source/Templates/gcc",
+                "/Users/eldadzipori/.platformio/packages/framework-cmsis/CMSIS/DSP/Include",
+                "/Users/eldadzipori/.platformio/packages/framework-cmsis/CMSIS/DSP/PrivateInclude",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/variants/STM32F1xx/F103C8T_F103CB(T-U)",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/CMSIS_DSP/src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/EEPROM/src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/IWatchdog/src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/Keyboard/src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/Mouse/src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/RGB_LED_TLC59731/src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/SPI/src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/Servo/src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/SoftwareSerial/src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/SrcWrapper/src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/SubGhz/src",
+                "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/Wire/src",
+                ""
             ],
-            "defines": [],
-            "macFrameworkPath": [
-                "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks"
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/Users/eldadzipori/Documents/CAPSTONE/MotorControl/include",
+                    "/Users/eldadzipori/Documents/CAPSTONE/MotorControl/src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/avr",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32/LL",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32/usb",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32/OpenAMP",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32/usb/hid",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32/usb/cdc",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Drivers/STM32F1xx_HAL_Driver/Inc",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Drivers/STM32F1xx_HAL_Driver/Src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/STM32F1xx",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Middlewares/ST/STM32_USB_Device_Library/Core/Inc",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Middlewares/ST/STM32_USB_Device_Library/Core/Src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Middlewares/OpenAMP",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Middlewares/OpenAMP/open-amp/lib/include",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Middlewares/OpenAMP/libmetal/lib/include",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Middlewares/OpenAMP/virtual_driver",
+                    "/Users/eldadzipori/.platformio/packages/framework-cmsis/CMSIS/Core/Include",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Drivers/CMSIS/Device/ST/STM32F1xx/Include",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/system/Drivers/CMSIS/Device/ST/STM32F1xx/Source/Templates/gcc",
+                    "/Users/eldadzipori/.platformio/packages/framework-cmsis/CMSIS/DSP/Include",
+                    "/Users/eldadzipori/.platformio/packages/framework-cmsis/CMSIS/DSP/PrivateInclude",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/cores/arduino",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/variants/STM32F1xx/F103C8T_F103CB(T-U)",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/CMSIS_DSP/src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/EEPROM/src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/IWatchdog/src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/Keyboard/src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/Mouse/src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/RGB_LED_TLC59731/src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/SPI/src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/Servo/src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/SoftwareSerial/src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/SrcWrapper/src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/SubGhz/src",
+                    "/Users/eldadzipori/.platformio/packages/framework-arduinoststm32/libraries/Wire/src",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=60115",
+                "STM32F1",
+                "STM32F103xB",
+                "STM32F1xx",
+                "ARDUINO=10808",
+                "ARDUINO_ARCH_STM32",
+                "NDEBUG",
+                "ARDUINO_BLUEPILL_F103C8",
+                "BOARD_NAME=\"BLUEPILL_F103C8\"",
+                "HAL_UART_MODULE_ENABLED",
+                "USE_FULL_LL_DRIVER",
+                "VARIANT_H=\"variant_PILL_F103Cx.h\"",
+                "VECT_TAB_OFFSET=0x0",
+                ""
             ],
-            "compilerPath": "/usr/bin/clang",
-            "cStandard": "c17",
-            "cppStandard": "c++17",
-            "intelliSenseMode": "macos-clang-arm64"
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++17",
+            "compilerPath": "/Users/eldadzipori/.platformio/packages/toolchain-gccarmnoneeabi/bin/arm-none-eabi-gcc",
+            "compilerArgs": [
+                "-mcpu=cortex-m3",
+                "-mthumb",
+                ""
+            ]
         }
     ],
     "version": 4
