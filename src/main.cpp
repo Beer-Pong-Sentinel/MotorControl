@@ -1,132 +1,53 @@
 #include <Arduino.h>
 
-// Pin definitions
-#define AZI_MOTOR       PA8    // PWM compatible pin for motor control
-#define AZI_MOTOR_PWM   PA_8   // Motor PWM control
-#define AZI_MOTOR_DIR   PB13   // Motor direction control
+// Define the encoder pins
+#define ENCODER_PIN_A PB11
+#define ENCODER_PIN_B PB10
 
-#define ENC_AZI_A       PB9    // Encoder Channel A
-#define ENC_AZI_B       PB8    // Encoder Channel B
+volatile int lastEncoded = 0;
+volatile long encoderValue = 0;
 
-#define LIMIT_AZI_BTN   PB12   // Calibration switch
-#define STATUS_LED      PC13   // Status LED
+long lastencoderValue = 0;
 
-// Variables
-volatile long encoderPosition = 0;  // Current encoder position
-const int encoderResolution = 600;  // Pulses per revolution
-bool direction = true;  // Motor direction: true = CW, false = CCW
-int targetAngle = 0;  // Target angle to move to after calibration
+int lastMSB = 0;
+int lastLSB = 0;
 
-int buttonState = 0;
+void updateEncoder()
+{
+  int MSB = digitalRead(ENCODER_PIN_A); //MSB = most significant bit
+  int LSB = digitalRead(ENCODER_PIN_B); //LSB = least significant bit
 
-// Function to read encoder
-void readEncoder() {
-  static bool lastA = LOW;
-  bool A = digitalRead(ENC_AZI_A);
-  bool B = digitalRead(ENC_AZI_B);
-  
-  // Check for rising edge on channel A
-  if (A != lastA && A == HIGH) {
-    if (B == LOW) {
-      encoderPosition++;
-      direction = true;  // CW
-    } else {
-      encoderPosition--;
-      direction = false; // CCW
-    }
-  }
-  lastA = A;
+  int encoded = (MSB << 1) |LSB; //converting the 2 pin value to single number
+  int sum  = (lastEncoded << 2) | encoded; //adding it to the previous encoded value
+
+  if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) encoderValue ++;
+  if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) encoderValue --;
+
+  lastEncoded = encoded; //store this value for next time
+}
+
+void setup()
+{
+  Serial.begin (9600);
+
+  pinMode(ENCODER_PIN_A, INPUT); 
+  pinMode(ENCODER_PIN_B, INPUT);
+
+  //digitalWrite(ENCODER_PIN_A, HIGH); //turn pullup resistor on
+  //digitalWrite(ENCODER_PIN_B, HIGH); //turn pullup resistor on
+
+  //call updateEncoder() when any high/low changed seen
+  //on interrupt 0 (pin 2), or interrupt 1 (pin 3) 
+  attachInterrupt(digitalPinToInterrupt(ENCODER_PIN_A), updateEncoder, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_PIN_B), updateEncoder, CHANGE);
+
+}
+
+void loop()
+{ 
+
+  Serial.println(encoderValue);
+  delay(1000); //just here to slow down the output, and show it will work  even during a delay
 }
 
 
-void moveMotor(bool dir, int pwmValue) {
-  digitalWrite(AZI_MOTOR_DIR, dir);  // Set direction
- ///analogWrite(AZI_MOTOR_PWM, pwmValue);  // Set motor speed
-  pwm_start(AZI_MOTOR_PWM, 500, 50,
-        	TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
-}
-
-void stopMotor() {
-  pwm_start(AZI_MOTOR_PWM, 500, 0,
-        	TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
-}
-
-void moveToCalibrationSwitch() {
-  // Rotate motor until calibration switch is hit
-  while (digitalRead(LIMIT_AZI_BTN) == LOW) {
-    moveMotor(true, 50);  // Move in CW direction
-  }
-  stopMotor();
-  encoderPosition = 0;  // Reset encoder position
-  Serial.println("Calibration complete, encoder reset.");
-}
-
-void moveToAngle(int angle) {
-  // Calculate target position based on angle
-  long targetPosition = (long)encoderResolution * angle / 360;
-
-  // Move motor until target position is reached
-  while (encoderPosition != targetPosition) {
-    if (encoderPosition < targetPosition) {
-      moveMotor(true, 150);  // Move CW
-    } else {
-      moveMotor(false, 150);  // Move CCW
-    }
-  }
-  stopMotor();
-  Serial.print("Reached angle: ");
-  Serial.println(angle);
-}
-
-void setup() {
-  // Motor control pins
-  pinMode(AZI_MOTOR, OUTPUT);
-  pinMode(AZI_MOTOR_DIR, OUTPUT);
-  
-  // Encoder pins
-  //pinMode(ENC_AZI_A, INPUT);
-  //pinMode(ENC_AZI_B, INPUT);
-  
-  // Calibration switch
-  pinMode(LIMIT_AZI_BTN, INPUT_PULLDOWN);
-  
-  // Status LED
-  pinMode(STATUS_LED, OUTPUT);
-  
-  // Attach interrupt for encoder readings
-  //attachInterrupt(digitalPinToInterrupt(ENC_AZI_A), readEncoder, CHANGE);
-  
-  // Serial for debugging
-  Serial.begin(9600);
-}
-
-void loop() {
-  // Example flow:
-  
-  // Step 1: Move to calibration switch
-  moveToCalibrationSwitch();
-  
-  
-  // Step 2: Set target angle (can be provided via Serial or predefined)
-  //targetAngle = 90;  // Example angle: 90 degrees
-  //buttonState = digitalRead(LIMIT_AZI_BTN);
-  
-
-  // Button is working
-  /*if (buttonState == HIGH) {
-    digitalWrite(STATUS_LED, HIGH);
-
-  } else {
-    digitalWrite(STATUS_LED, LOW);
-  }*/
-
-  // Step 3: Move to target angle
-  //moveToAngle(targetAngle);
-
-  // Turn on status LED to indicate task completion
- // digitalWrite(STATUS_LED, HIGH);
-  
-  // Prevent further action in loop
-  //while (true);
-  while(true);
-}
