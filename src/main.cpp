@@ -11,6 +11,8 @@
 #define LIMIT_AZI_BTN   PB12   // Calibration switch
 #define STATUS_LED      PC13   // Status LED
 
+#define ENCODER_MAX   855
+
 bool direction = true;  // Motor direction: true = CW, false = CCW
 int targetAngle = 0;  // Target angle to move to after calibration
 
@@ -33,8 +35,8 @@ void updateEncoder()
   int encoded = (MSB << 1) |LSB; //converting the 2 pin value to single number
   int sum  = (lastEncoded << 2) | encoded; //adding it to the previous encoded value
 
-  if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) encoderValue ++;
-  if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) encoderValue --;
+  if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) encoderValue --;
+  if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) encoderValue ++;
 
   lastEncoded = encoded; //store this value for next time
 }
@@ -44,7 +46,7 @@ void updateEncoder()
 void moveMotor(bool dir, int pwmValue) {
   digitalWrite(AZI_MOTOR_DIR, dir);  // Set direction
  ///analogWrite(AZI_MOTOR_PWM, pwmValue);  // Set motor speed
-  pwm_start(AZI_MOTOR_PWM, 500, 5,
+  pwm_start(AZI_MOTOR_PWM, 500, pwmValue,
         	TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
 }
 
@@ -56,29 +58,107 @@ void stopMotor() {
 void moveToCalibrationSwitch() {
   // Rotate motor until calibration switch is hit
   while (digitalRead(LIMIT_AZI_BTN) == LOW) {
-    moveMotor(false, 50);  // Move in CW direction
+    moveMotor(false, 4);  // Move in CW direction
   }
   stopMotor();
   encoderValue = 0;  // Reset encoder position
   Serial.println("Calibration complete, encoder reset.");
+  Serial.println(encoderValue);
+
 }
 
+// void moveToAngle(int angle) {
+
+//   // Move motor until target position is reached
+//   while (encoderValue < angle) {
+//     Serial.println(encoderValue);
+//     if (encoderValue < angle) {
+//       moveMotor(true, 4);  // Move CW
+//     } else {
+//       moveMotor(false, 4);  // Move CCW
+//     }
+//   }
+//   stopMotor();
+//   Serial.print("Reached angle: ");
+//   Serial.println(angle);
+// }
+// Declare encoderValue as volatile
+//volatile int encoderValue = 0; // Ensure this is at the global scope
+
 void moveToAngle(int angle) {
-  // Calculate target position based on angle
-  long targetPosition = (long)encoderValue * angle / 360;
+  // PID constants
+  double Kp = 0.5;  // Proportional gain (tune as needed)
+  double Ki = 0.0;  // Integral gain (tune as needed)
+  double Kd = 0.0;  // Derivative gain (tune as needed)
+
+  double error = 0;
+  double previous_error = 0;
+  double integral = 0;
+  double derivative = 0;
+  double output = 0;
+
+  unsigned long currentTime, previousTime;
+  double elapsedTime;
+
+  int maxSpeed = 100; // Maximum speed (PWM value)
+  int minSpeed = 0;   // Minimum speed
+  int tolerance = 1;  // Tolerance in encoder units
+
+  previousTime = millis();
 
   // Move motor until target position is reached
-  while (encoderValue < 200) {
-    if (encoderValue < 200) {
-      moveMotor(false, 150);  // Move CW
-    } else {
-      moveMotor(true, 150);  // Move CCW
+  while (true) {
+    // Calculate error
+    error = angle - encoderValue;
+
+    // If error is within tolerance, exit loop
+    if (abs(error) <= tolerance) {
+      break;
     }
+
+    currentTime = millis();
+    elapsedTime = (double)(currentTime - previousTime) / 1000.0; // Convert ms to seconds
+
+    // Calculate integral
+    integral += error * elapsedTime;
+
+    // Calculate derivative
+    derivative = (error - previous_error) / elapsedTime;
+
+    // Compute PID output
+    output = Kp * error + Ki * integral + Kd * derivative;
+
+    // Constrain output to max and min speed
+    output = constrain(output, -maxSpeed, maxSpeed);
+
+    // Determine motor direction and speed
+    bool direction = output >= 0; // True for CW, False for CCW
+    int speed = abs((int)output);
+
+    // Ensure speed is within bounds
+    speed = constrain(speed, minSpeed, maxSpeed);
+
+    // Move motor
+    moveMotor(direction, speed);
+
+    // Update variables for next loop
+    previous_error = error;
+    previousTime = currentTime;
+
+    // Debugging output
+    // Serial.print("Encoder Value: ");
+    // Serial.print(encoderValue);
+    // Serial.print(" | Error: ");
+    // Serial.print(error);
+    // Serial.print(" | Output: ");
+    // Serial.println(output);
   }
+
   stopMotor();
   Serial.print("Reached angle: ");
   Serial.println(angle);
 }
+
 
 void setup() {
   // Motor control pins
