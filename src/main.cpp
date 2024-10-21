@@ -67,23 +67,6 @@ void moveToCalibrationSwitch() {
 
 }
 
-// void moveToAngle(int angle) {
-
-//   // Move motor until target position is reached
-//   while (encoderValue < angle) {
-//     Serial.println(encoderValue);
-//     if (encoderValue < angle) {
-//       moveMotor(true, 4);  // Move CW
-//     } else {
-//       moveMotor(false, 4);  // Move CCW
-//     }
-//   }
-//   stopMotor();
-//   Serial.print("Reached angle: ");
-//   Serial.println(angle);
-// }
-// Declare encoderValue as volatile
-//volatile int encoderValue = 0; // Ensure this is at the global scope
 
 void moveToAngle(int angle) {
   // PID constants
@@ -161,7 +144,6 @@ void moveToAngle(int angle) {
 
 
 void setup() {
-  // Motor control pins
   pinMode(AZI_MOTOR, OUTPUT);
   pinMode(AZI_MOTOR_DIR, OUTPUT);
   
@@ -169,23 +151,27 @@ void setup() {
   pinMode(ENC_AZI_A, INPUT); 
   pinMode(ENC_AZI_B, INPUT);
 
-  //call updateEncoder() when any high/low changed seen
-  //on interrupt 0 (pin 2), or interrupt 1 (pin 3) 
   attachInterrupt(digitalPinToInterrupt(ENC_AZI_A), updateEncoder, CHANGE);
   attachInterrupt(digitalPinToInterrupt(ENC_AZI_B), updateEncoder, CHANGE);
   
-  // Calibration switch
   pinMode(LIMIT_AZI_BTN, INPUT_PULLDOWN);
   
-  // Status LED
   pinMode(STATUS_LED, OUTPUT);
   
-  // Attach interrupt for encoder readings
-  //attachInterrupt(digitalPinToInterrupt(ENC_AZI_A), readEncoder, CHANGE);
-  
-  // Serial for debugging
+
   Serial.begin(9600);
 }
+
+
+unsigned long startTime;
+unsigned long endTime;
+unsigned long shortestTime = 999999; // Initialize with a large value
+float bestKp = 0, bestKi = 0, bestKd = 0;
+
+// PID ranges and increments
+float kp_min = 0.5, kp_max = 10.0, kp_step = 0.5;
+float ki_min = 0.1, ki_max = 5.0, ki_step = 0.1;
+float kd_min = 0.1, kd_max = 5.0, kd_step = 0.1;
 
 void loop() {
   // Example flow:
