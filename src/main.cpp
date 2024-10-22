@@ -216,7 +216,14 @@ void loop() {
   //     }
   //   }
   // }
-  moveToAngle(500, 1, 0.2, 0.2);
+  // 0.8 0.2 0.2
+  double Kp = 2;
+  double Ki = 0.2;
+  double Kd = 0.2;
+  Serial.println(Kp);
+  Serial.println(Ki);
+  Serial.println(Kd);
+  moveToAngle(500, Kp, Ki, Kd);
   Serial.println("END");
   
   // After all iterations, print the best parameters
