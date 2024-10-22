@@ -89,6 +89,7 @@ void moveToAngle(int angle, double Kp, double Ki, double Kd) {
   while (true) {
     // Calculate error
     error = angle - encoderValue;
+    Serial.println(error);
 
     // If error is within tolerance, exit loop
     if (abs(error) <= tolerance) {
@@ -132,6 +133,7 @@ void moveToAngle(int angle, double Kp, double Ki, double Kd) {
     // Serial.print(error);
     // Serial.print(" | Output: ");
     // Serial.println(output);
+    
     delay(5);
 
   }
@@ -168,63 +170,64 @@ unsigned long shortestTime = 999999; // Initialize with a large value
 float bestKp = 0, bestKi = 0, bestKd = 0;
 
 // PID ranges and increments
-float kp_min = 0.5, kp_max = 10.0, kp_step = 0.5;
+float kp_min = 1, kp_max = 10.0, kp_step = 0.1;
 float ki_min = 0.1, ki_max = 5.0, ki_step = 0.1;
 float kd_min = 0.1, kd_max = 5.0, kd_step = 0.1;
 void loop() {
   // First, move to calibration switch
   
-  
+   moveToCalibrationSwitch();
   // // Loop over PID values to find the quickest
-  for (float Kp = kp_min; Kp <= kp_max; Kp += kp_step) {
-    for (float Ki = ki_min; Ki <= ki_max; Ki += ki_step) {
-      for (float Kd = kd_min; Kd <= kd_max; Kd += kd_step) {
+  // for (float Kp = kp_min; Kp <= kp_max; Kp += kp_step) {
+  //   for (float Ki = ki_min; Ki <= ki_max; Ki += ki_step) {
+  //     for (float Kd = kd_min; Kd <= kd_max; Kd += kd_step) {
 
-        moveToCalibrationSwitch();
+  //       moveToCalibrationSwitch();
         
-        // Record the start time
-        startTime = millis();
+  //       // Record the start time
+  //       startTime = millis();
         
-        // Call the moveToAngle function with current Kp, Ki, Kd
-        moveToAngle(400, Kp, Ki, Kd);
+  //       // Call the moveToAngle function with current Kp, Ki, Kd
+  //       moveToAngle(400, Kp, Ki, Kd);
         
-        // Record the end time
-        endTime = millis();
+  //       // Record the end time
+  //       endTime = millis();
         
-        // Calculate time taken
-        unsigned long timeTaken = endTime - startTime;
+  //       // Calculate time taken
+  //       unsigned long timeTaken = endTime - startTime;
         
-        // Print current PID parameters and time taken
-        Serial.print("Kp: ");
-        Serial.print(Kp);
-        Serial.print(", Ki: ");
-        Serial.print(Ki);
-        Serial.print(", Kd: ");
-        Serial.print(Kd);
-        Serial.print(" -> Time: ");
-        Serial.println(timeTaken);
+  //       // Print current PID parameters and time taken
+  //       Serial.print("Kp: ");
+  //       Serial.print(Kp);
+  //       Serial.print(", Ki: ");
+  //       Serial.print(Ki);
+  //       Serial.print(", Kd: ");
+  //       Serial.print(Kd);
+  //       Serial.print(" -> Time: ");
+  //       Serial.println(timeTaken);
         
-        // Check if this is the shortest time
-        if (timeTaken < shortestTime) {
-          shortestTime = timeTaken;
-          bestKp = Kp;
-          bestKi = Ki;
-          bestKd = Kd;
-        }
-      }
-    }
-  }
-  //moveToAngle(500, 2, 0.1, 0.1);
+  //       // Check if this is the shortest time
+  //       if (timeTaken < shortestTime) {
+  //         shortestTime = timeTaken;
+  //         bestKp = Kp;
+  //         bestKi = Ki;
+  //         bestKd = Kd;
+  //       }
+  //     }
+  //   }
+  // }
+  moveToAngle(500, 1, 0.2, 0.2);
+  Serial.println("END");
   
   // After all iterations, print the best parameters
-  Serial.println("Best parameters:");
-  Serial.print("Kp: ");
-  Serial.print(bestKp);
-  Serial.print(", Ki: ");
-  Serial.print(bestKi);
-  Serial.print(", Kd: ");
-  Serial.print(bestKd);
-  Serial.print(" -> Shortest time: ");
-  Serial.println(shortestTime);
+  // Serial.println("Best parameters:");
+  // Serial.print("Kp: ");
+  // Serial.print(bestKp);
+  // Serial.print(", Ki: ");
+  // Serial.print(bestKi);
+  // Serial.print(", Kd: ");
+  // Serial.print(bestKd);
+  // Serial.print(" -> Shortest time: ");
+  // Serial.println(shortestTime);
   while(true);
 }
