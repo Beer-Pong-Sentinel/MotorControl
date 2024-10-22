@@ -62,8 +62,8 @@ void moveToCalibrationSwitch() {
   }
   stopMotor();
   encoderValue = 0;  // Reset encoder position
-  Serial.println("Calibration complete, encoder reset.");
-  Serial.println(encoderValue);
+  //Serial.println("Calibration complete, encoder reset.");
+  //Serial.println(encoderValue);
 
 }
 
@@ -79,7 +79,7 @@ void moveToAngle(int angle, double Kp, double Ki, double Kd) {
   unsigned long currentTime, previousTime;
   double elapsedTime;
 
-  int maxSpeed = 50; // Maximum speed (PWM value)
+  int maxSpeed = 100; // Maximum speed (PWM value)
   int minSpeed = 0;   // Minimum speed
   int tolerance = 1;  // Tolerance in encoder units
 
@@ -108,11 +108,12 @@ void moveToAngle(int angle, double Kp, double Ki, double Kd) {
     output = Kp * error + Ki * integral + Kd * derivative;
 
     // Constrain output to max and min speed
-    output = constrain(output, 0, maxSpeed);
+    output = constrain(output, -maxSpeed, maxSpeed);
 
     // Determine motor direction and speed
     bool direction = output >= 0; // True for CW, False for CCW
     int speed = abs((int)output);
+    //Serial.println(speed);
 
     // Ensure speed is within bounds
     speed = constrain(speed, minSpeed, maxSpeed);
@@ -125,18 +126,19 @@ void moveToAngle(int angle, double Kp, double Ki, double Kd) {
     previousTime = currentTime;
 
     // Debugging output
-    Serial.print("Encoder Value: ");
-    Serial.print(encoderValue);
-    Serial.print(" | Error: ");
-    Serial.print(error);
-    Serial.print(" | Output: ");
-    Serial.println(output);
+    // Serial.print("Encoder Value: ");
+    // Serial.print(encoderValue);
+    // Serial.print(" | Error: ");
+    // Serial.print(error);
+    // Serial.print(" | Output: ");
+    // Serial.println(output);
+    delay(5);
 
   }
 
   stopMotor();
-  Serial.print("Reached angle: ");
-  Serial.println(angle);
+  // Serial.print("Reached angle: ");
+  //Serial.println(angle);
 }
 
 
@@ -169,49 +171,50 @@ float bestKp = 0, bestKi = 0, bestKd = 0;
 float kp_min = 0.5, kp_max = 10.0, kp_step = 0.5;
 float ki_min = 0.1, ki_max = 5.0, ki_step = 0.1;
 float kd_min = 0.1, kd_max = 5.0, kd_step = 0.1;
-
 void loop() {
   // First, move to calibration switch
-  moveToCalibrationSwitch();
+  
   
   // // Loop over PID values to find the quickest
-  // for (float Kp = kp_min; Kp <= kp_max; Kp += kp_step) {
-  //   for (float Ki = ki_min; Ki <= ki_max; Ki += ki_step) {
-  //     for (float Kd = kd_min; Kd <= kd_max; Kd += kd_step) {
+  for (float Kp = kp_min; Kp <= kp_max; Kp += kp_step) {
+    for (float Ki = ki_min; Ki <= ki_max; Ki += ki_step) {
+      for (float Kd = kd_min; Kd <= kd_max; Kd += kd_step) {
+
+        moveToCalibrationSwitch();
         
-  //       // Record the start time
-  //       startTime = millis();
+        // Record the start time
+        startTime = millis();
         
-  //       // Call the moveToAngle function with current Kp, Ki, Kd
-  //       moveToAngle(200, Kp, Ki, Kd);
+        // Call the moveToAngle function with current Kp, Ki, Kd
+        moveToAngle(400, Kp, Ki, Kd);
         
-  //       // Record the end time
-  //       endTime = millis();
+        // Record the end time
+        endTime = millis();
         
-  //       // Calculate time taken
-  //       unsigned long timeTaken = endTime - startTime;
+        // Calculate time taken
+        unsigned long timeTaken = endTime - startTime;
         
-  //       // Print current PID parameters and time taken
-  //       Serial.print("Kp: ");
-  //       Serial.print(Kp);
-  //       Serial.print(", Ki: ");
-  //       Serial.print(Ki);
-  //       Serial.print(", Kd: ");
-  //       Serial.print(Kd);
-  //       Serial.print(" -> Time: ");
-  //       Serial.println(timeTaken);
+        // Print current PID parameters and time taken
+        Serial.print("Kp: ");
+        Serial.print(Kp);
+        Serial.print(", Ki: ");
+        Serial.print(Ki);
+        Serial.print(", Kd: ");
+        Serial.print(Kd);
+        Serial.print(" -> Time: ");
+        Serial.println(timeTaken);
         
-  //       // Check if this is the shortest time
-  //       if (timeTaken < shortestTime) {
-  //         shortestTime = timeTaken;
-  //         bestKp = Kp;
-  //         bestKi = Ki;
-  //         bestKd = Kd;
-  //       }
-  //     }
-  //   }
-  // }
-  moveToAngle(200, 1, 0.5, 0.5);
+        // Check if this is the shortest time
+        if (timeTaken < shortestTime) {
+          shortestTime = timeTaken;
+          bestKp = Kp;
+          bestKi = Ki;
+          bestKd = Kd;
+        }
+      }
+    }
+  }
+  //moveToAngle(500, 2, 0.1, 0.1);
   
   // After all iterations, print the best parameters
   Serial.println("Best parameters:");
