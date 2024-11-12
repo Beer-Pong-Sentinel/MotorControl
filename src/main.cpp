@@ -1,74 +1,174 @@
 #include <Arduino.h>
 
-// Pin definitions
+#define AZIMUTH   true
+#define ALTITUDE  false
+
+/**********************
+ *                    *
+ *     AZIMUTH PINS   *
+ *                    *
+ **********************/
 #define AZI_MOTOR       PA8    // PWM compatible pin for motor control
 #define AZI_MOTOR_PWM   PA_8   // Motor PWM control
-#define AZI_MOTOR_DIR   PB13   // Motor direction control
+#define AZI_MOTOR_DIR   PB13   // Motor azi_direction control
+#define AZI_ENC_A       PB9    // Encoder Channel A
+#define AZI_ENC_B       PB8    // Encoder Channel B
+#define AZI_LIM_BTN     PB12    // Calibration switch
+#define AZI_ENC_MAX     855
 
-#define ENC_AZI_A       PB9    // Encoder Channel A
-#define ENC_AZI_B       PB8    // Encoder Channel B
+/**********************
+ *                    *
+ *   ALTITUDE PINS    *
+ *                    *
+ **********************/
+#define ALT_MOTOR       PA8    // PWM compatible pin for motor control
+#define ALT_MOTOR_PWM   PA_8   // Motor PWM control
+#define ALT_MOTOR_DIR   PB13   // Motor azi_direction control
+#define ALT_ENC_A       PB9    // Encoder Channel A
+#define ALT_ENC_B       PB8    // Encoder Channel B
+#define ALT_LIM_BTN     PB12    // Calibration switch
+#define ALT_ENC_MAX     855
 
-#define LIMIT_AZI_BTN   PB12   // Calibration switch
+
 #define STATUS_LED      PC13   // Status LED
 
-#define ENCODER_MAX   855
 
-bool direction = true;  // Motor direction: true = CW, false = CCW
-int targetAngle = 0;  // Target angle to move to after calibration
+/***********************
+ *                     *
+ *  AZIMUTH VARIABLES  *
+ *                     *
+ **********************/
+bool          azi_direction     = true;   // Motor azi_direction: true = CW, false = CCW
+int           azi_target_angle  = 0;      // Target angle to move to after calibration
+int           azi_cal_btn       = 0;
+volatile int  azi_last_enc      = 0;
+volatile long azi_enc_val       = 0;
+double        azi_kp            = 2;
+double        azi_ki            = 0.2;
+double        azi_kd            = 0.2;
 
-int buttonState = 0;
+/***********************
+ *                     *
+ * ALTITUDE VARIABLES  *
+ *                     *
+ **********************/
+bool          alt_direction     = true;   // Motor azi_direction: true = CW, false = CCW
+int           alt_target_angle  = 0;      // Target angle to move to after calibration
+int           alt_cal_btn       = 0;
+volatile int  alt_last_enc      = 0;
+volatile long alt_enc_val       = 0;
+double        alt_kp            = 2;
+double        alt_ki            = 0.2;
+double        alt_kd            = 0.2;
 
-
-volatile int lastEncoded = 0;
-volatile long encoderValue = 0;
-
-long lastencoderValue = 0;
-
-int lastMSB = 0;
-int lastLSB = 0;
-
-void updateEncoder()
+inline
+void updateAziEncoder()
 {
-  int MSB = digitalRead(ENC_AZI_A); //MSB = most significant bit
-  int LSB = digitalRead(ENC_AZI_B); //LSB = least significant bit
+  int last_enc = azi_last_enc;
+  int msb = digitalRead(AZI_ENC_A); //MSB = most significant bit
+  int lsb = digitalRead(AZI_ENC_B); //LSB = least significant bit
 
-  int encoded = (MSB << 1) |LSB; //converting the 2 pin value to single number
-  int sum  = (lastEncoded << 2) | encoded; //adding it to the previous encoded value
+  int encoded = (msb << 1) |lsb; //converting the 2 pin value to single number
+  int sum  = (azi_last_enc << 2) | encoded; //adding it to the previous encoded value
 
-  if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) encoderValue --;
-  if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) encoderValue ++;
-
-  lastEncoded = encoded; //store this value for next time
-}
-
-// Function to read encoder
-
-void moveMotor(bool dir, int pwmValue) {
-  digitalWrite(AZI_MOTOR_DIR, dir);  // Set direction
- ///analogWrite(AZI_MOTOR_PWM, pwmValue);  // Set motor speed
-  pwm_start(AZI_MOTOR_PWM, 500, pwmValue,
-        	TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
-}
-
-void stopMotor() {
-  pwm_start(AZI_MOTOR_PWM, 500, 0,
-        	TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
-}
-
-void moveToCalibrationSwitch() {
-  // Rotate motor until calibration switch is hit
-  while (digitalRead(LIMIT_AZI_BTN) == LOW) {
-    moveMotor(false, 5);  // Move in CW direction
+  if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) 
+  {
+    azi_enc_val --;
   }
-  stopMotor();
-  encoderValue = 0;  // Reset encoder position
-  //Serial.println("Calibration complete, encoder reset.");
-  //Serial.println(encoderValue);
+  if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000)
+  {
+    azi_enc_val++;
+  }
 
+  azi_last_enc = encoded; //store this value for next time
+}
+
+inline
+void updateAltEncoder()
+{
+  int last_enc = alt_last_enc;
+  int msb = digitalRead(ALT_ENC_A); //MSB = most significant bit
+  int lsb = digitalRead(ALT_ENC_B); //LSB = least significant bit
+
+  int encoded = (msb << 1) |lsb; //converting the 2 pin value to single number
+  int sum  = (azi_last_enc << 2) | encoded; //adding it to the previous encoded value
+
+  if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) 
+  {
+    alt_enc_val --;
+  }
+  if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000)
+  {
+    alt_enc_val++;
+  }
+
+  alt_last_enc = encoded; //store this value for next time
+}
+
+void moveMotor(bool is_azi, bool dir, int pwmValue) 
+{
+  if (is_azi)
+  {
+    digitalWrite(AZI_MOTOR_DIR, dir);
+
+    pwm_start(  AZI_MOTOR_PWM, 
+                500, 
+                pwmValue,
+        	      TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
+  }
+  else 
+  {
+    digitalWrite(ALT_MOTOR_DIR, dir);
+
+    pwm_start(  ALT_MOTOR_PWM, 
+                500, 
+                pwmValue,
+        	      TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
+  }
 }
 
 
-void moveToAngle(int angle, double Kp, double Ki, double Kd) {
+void stopMotor(bool is_azi) {
+  if (is_azi)
+  {
+      pwm_start(  AZI_MOTOR_PWM, 
+                  500, 
+                  0,
+        	        TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
+  }
+  else
+  {
+      pwm_start(  ALT_MOTOR_PWM, 
+                  500, 
+                  0,
+        	        TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
+  }
+
+}
+
+void moveToCalibrationSwitch(bool is_azi) {
+  if (is_azi)
+  {
+    while (digitalRead(AZI_LIM_BTN) == LOW) 
+    {
+      moveMotor(AZIMUTH, false, 5);  // Move in CW azi_direction
+    }
+    stopMotor(AZIMUTH);
+    azi_enc_val = 0;  // Reset encoder position
+  }
+  else
+  {
+    while (digitalRead(ALT_LIM_BTN) == LOW) 
+    {
+      moveMotor(ALTITUDE, false, 5);  // Move in CW azi_direction
+    }
+    stopMotor(ALTITUDE);
+    alt_enc_val = 0;  // Reset encoder position
+  }
+}
+
+
+void moveToAngle(bool is_azi, int angle, double Kp, double Ki, double Kd) {
 
   double error = 0;
   double previous_error = 0;
@@ -88,8 +188,9 @@ void moveToAngle(int angle, double Kp, double Ki, double Kd) {
   // Move motor until target position is reached
   while (true) {
     // Calculate error
-    error = angle - encoderValue;
-    Serial.println(error);
+    is_azi ? error = angle - azi_enc_val : error = angle - alt_enc_val;
+    
+    // IMPORTANT - instert serial communication here
 
     // If error is within tolerance, exit loop
     if (abs(error) <= tolerance) {
@@ -120,43 +221,42 @@ void moveToAngle(int angle, double Kp, double Ki, double Kd) {
     speed = constrain(speed, minSpeed, maxSpeed);
 
     // Move motor
-    moveMotor(direction, speed);
+    moveMotor(is_azi ,direction, speed);
 
     // Update variables for next loop
     previous_error = error;
     previousTime = currentTime;
-
-    // Debugging output
-    // Serial.print("Encoder Value: ");
-    // Serial.print(encoderValue);
-    // Serial.print(" | Error: ");
-    // Serial.print(error);
-    // Serial.print(" | Output: ");
-    // Serial.println(output);
     
     delay(5);
 
   }
 
-  stopMotor();
-  // Serial.print("Reached angle: ");
-  //Serial.println(angle);
+  stopMotor(is_azi);
+
 }
 
 
 void setup() {
+
+  /* Azimuth Control Setup */
   pinMode(AZI_MOTOR, OUTPUT);
   pinMode(AZI_MOTOR_DIR, OUTPUT);
-  
+  pinMode(AZI_ENC_A, INPUT); 
+  pinMode(AZI_ENC_B, INPUT);
+  attachInterrupt(digitalPinToInterrupt(AZI_ENC_A), updateAziEncoder, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(AZI_ENC_B), updateAziEncoder, CHANGE);
+  pinMode(AZI_LIM_BTN, INPUT_PULLDOWN);
 
-  pinMode(ENC_AZI_A, INPUT); 
-  pinMode(ENC_AZI_B, INPUT);
+  /* Altitude Control Setup */
+  pinMode(ALT_MOTOR, OUTPUT);
+  pinMode(ALT_MOTOR_DIR, OUTPUT);
+  pinMode(ALT_ENC_A, INPUT); 
+  pinMode(ALT_ENC_B, INPUT);
+  attachInterrupt(digitalPinToInterrupt(ALT_ENC_A), updateAltEncoder, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ALT_ENC_B), updateAltEncoder, CHANGE);
+  pinMode(ALT_LIM_BTN, INPUT_PULLDOWN);
 
-  attachInterrupt(digitalPinToInterrupt(ENC_AZI_A), updateEncoder, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ENC_AZI_B), updateEncoder, CHANGE);
-  
-  pinMode(LIMIT_AZI_BTN, INPUT_PULLDOWN);
-  
+
   pinMode(STATUS_LED, OUTPUT);
   
 
@@ -164,77 +264,7 @@ void setup() {
 }
 
 
-unsigned long startTime;
-unsigned long endTime;
-unsigned long shortestTime = 999999; // Initialize with a large value
-float bestKp = 0, bestKi = 0, bestKd = 0;
-
-// PID ranges and increments
-float kp_min = 1, kp_max = 10.0, kp_step = 0.1;
-float ki_min = 0.1, ki_max = 5.0, ki_step = 0.1;
-float kd_min = 0.1, kd_max = 5.0, kd_step = 0.1;
 void loop() {
-  // First, move to calibration switch
   
-   moveToCalibrationSwitch();
-  // // Loop over PID values to find the quickest
-  // for (float Kp = kp_min; Kp <= kp_max; Kp += kp_step) {
-  //   for (float Ki = ki_min; Ki <= ki_max; Ki += ki_step) {
-  //     for (float Kd = kd_min; Kd <= kd_max; Kd += kd_step) {
-
-  //       moveToCalibrationSwitch();
-        
-  //       // Record the start time
-  //       startTime = millis();
-        
-  //       // Call the moveToAngle function with current Kp, Ki, Kd
-  //       moveToAngle(400, Kp, Ki, Kd);
-        
-  //       // Record the end time
-  //       endTime = millis();
-        
-  //       // Calculate time taken
-  //       unsigned long timeTaken = endTime - startTime;
-        
-  //       // Print current PID parameters and time taken
-  //       Serial.print("Kp: ");
-  //       Serial.print(Kp);
-  //       Serial.print(", Ki: ");
-  //       Serial.print(Ki);
-  //       Serial.print(", Kd: ");
-  //       Serial.print(Kd);
-  //       Serial.print(" -> Time: ");
-  //       Serial.println(timeTaken);
-        
-  //       // Check if this is the shortest time
-  //       if (timeTaken < shortestTime) {
-  //         shortestTime = timeTaken;
-  //         bestKp = Kp;
-  //         bestKi = Ki;
-  //         bestKd = Kd;
-  //       }
-  //     }
-  //   }
-  // }
-  // 0.8 0.2 0.2
-  double Kp = 2;
-  double Ki = 0.2;
-  double Kd = 0.2;
-  Serial.println(Kp);
-  Serial.println(Ki);
-  Serial.println(Kd);
-  moveToAngle(500, Kp, Ki, Kd);
-  Serial.println("END");
-  
-  // After all iterations, print the best parameters
-  // Serial.println("Best parameters:");
-  // Serial.print("Kp: ");
-  // Serial.print(bestKp);
-  // Serial.print(", Ki: ");
-  // Serial.print(bestKi);
-  // Serial.print(", Kd: ");
-  // Serial.print(bestKd);
-  // Serial.print(" -> Shortest time: ");
-  // Serial.println(shortestTime);
   while(true);
 }
