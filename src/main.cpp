@@ -11,8 +11,8 @@
 #define AZI_MOTOR       PA8    // PWM compatible pin for motor control
 #define AZI_MOTOR_PWM   PA_8   // Motor PWM control
 #define AZI_MOTOR_DIR   PB13   // Motor azi_direction control
-#define AZI_ENC_A       PB9    // Encoder Channel A
-#define AZI_ENC_B       PB8    // Encoder Channel B
+#define AZI_ENC_A       PB9    // Encoder Channel A Green
+#define AZI_ENC_B       PB8    // Encoder Channel B White
 #define AZI_LIM_BTN     PB12    // Calibration switch
 #define AZI_ENC_MAX     855
 
@@ -24,10 +24,10 @@
 #define ALT_MOTOR       PA8    // PWM compatible pin for motor control
 #define ALT_MOTOR_PWM   PA_8   // Motor PWM control
 #define ALT_MOTOR_DIR   PB13   // Motor azi_direction control
-#define ALT_ENC_A       PB9    // Encoder Channel A
-#define ALT_ENC_B       PB8    // Encoder Channel B
-#define ALT_LIM_BTN     PB12    // Calibration switch
-#define ALT_ENC_MAX     855
+#define ALT_ENC_A       PB10    // Encoder Channel A Green
+#define ALT_ENC_B       PB11   // Encoder Channel B White
+#define ALT_LIM_BTN     PA1   // Calibration switch
+#define ALT_ENC_MAX     400
 
 
 #define STATUS_LED      PC13   // Status LED
@@ -64,7 +64,6 @@ double        alt_kd            = 0.2;
 inline
 void updateAziEncoder()
 {
-  int last_enc = azi_last_enc;
   int msb = digitalRead(AZI_ENC_A); //MSB = most significant bit
   int lsb = digitalRead(AZI_ENC_B); //LSB = least significant bit
 
@@ -81,17 +80,18 @@ void updateAziEncoder()
   }
 
   azi_last_enc = encoded; //store this value for next time
+
+  Serial.println(azi_last_enc);
 }
 
 inline
 void updateAltEncoder()
 {
-  int last_enc = alt_last_enc;
   int msb = digitalRead(ALT_ENC_A); //MSB = most significant bit
   int lsb = digitalRead(ALT_ENC_B); //LSB = least significant bit
 
   int encoded = (msb << 1) |lsb; //converting the 2 pin value to single number
-  int sum  = (azi_last_enc << 2) | encoded; //adding it to the previous encoded value
+  int sum  = (alt_last_enc << 2) | encoded; //adding it to the previous encoded value
 
   if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) 
   {
@@ -103,6 +103,8 @@ void updateAltEncoder()
   }
 
   alt_last_enc = encoded; //store this value for next time
+
+  Serial.println(alt_enc_val);
 }
 
 void moveMotor(bool is_azi, bool dir, int pwmValue) 
@@ -243,8 +245,8 @@ void setup() {
   pinMode(AZI_MOTOR_DIR, OUTPUT);
   pinMode(AZI_ENC_A, INPUT); 
   pinMode(AZI_ENC_B, INPUT);
-  attachInterrupt(digitalPinToInterrupt(AZI_ENC_A), updateAziEncoder, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(AZI_ENC_B), updateAziEncoder, CHANGE);
+  //attachInterrupt(digitalPinToInterrupt(AZI_ENC_A), updateAziEncoder, CHANGE);
+  //attachInterrupt(digitalPinToInterrupt(AZI_ENC_B), updateAziEncoder, CHANGE);
   pinMode(AZI_LIM_BTN, INPUT_PULLDOWN);
 
   /* Altitude Control Setup */
@@ -266,5 +268,13 @@ void setup() {
 
 void loop() {
   
-  while(true);
+  //while(true);
+  if(digitalRead(ALT_LIM_BTN))
+  {
+    digitalWrite(STATUS_LED, HIGH);
+  }
+  else
+  {
+    digitalWrite(STATUS_LED, LOW);
+  }
 }
