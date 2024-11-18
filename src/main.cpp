@@ -263,18 +263,21 @@ void setup() {
   
 
   Serial.begin(9600);
+
 }
 
 
-void loop() {
-  
-  //while(true);
-  if(digitalRead(ALT_LIM_BTN))
-  {
-    digitalWrite(STATUS_LED, HIGH);
-  }
-  else
-  {
-    digitalWrite(STATUS_LED, LOW);
-  }
+void loop() 
+{
+  /*
+   * CONTROL SQUENCE
+   *
+   * Callibration:
+   * 1) Move azimuth to 0 position
+   * 2) Move azimuth to 45 degree position and hold
+   * 3) Move altitude to 0 position
+   * 4) Move altitude to 10 degree position
+   * 
+   * Operation:
+   */
 }
