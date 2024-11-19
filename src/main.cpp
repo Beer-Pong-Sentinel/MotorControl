@@ -43,9 +43,11 @@ int           azi_target_angle  = 0;      // Target angle to move to after calib
 int           azi_cal_btn       = 0;
 volatile int  azi_last_enc      = 0;
 volatile long azi_enc_val       = 0;
-double        azi_kp            = 2;
-double        azi_ki            = 0.2;
-double        azi_kd            = 0.2;
+
+#define AZI_KP 2
+#define AZI_KI 0.2
+#define AZI_KD 0.2
+
 
 /***********************
  *                     *
@@ -57,9 +59,54 @@ int           alt_target_angle  = 0;      // Target angle to move to after calib
 int           alt_cal_btn       = 0;
 volatile int  alt_last_enc      = 0;
 volatile long alt_enc_val       = 0;
-double        alt_kp            = 2;
-double        alt_ki            = 0.2;
-double        alt_kd            = 0.2;
+
+#define ALT_KP 2
+#define ALT_KI 0.2
+#define ALT_KD 0.2
+
+
+/***********************
+ *                     *
+ *     STATE FLOW      * 
+ *                     *
+ **********************/
+int state = 0;
+
+#define AZI_CALIBRATION 0
+#define AZI_MOVE_45     1
+#define ALT_CALIBRATION 2
+
+
+
+/***********************
+ *                     *
+ *     PID CONTROL     * 
+ *                     *
+ **********************/
+#define MAX_SPEED 100  // Maximum speed (PWM value)
+#define MIN_SPEED 0    // Minimum speed
+#define TOLERANCE 1    // Tolerance in encoder units
+
+bool azi_reached_goal = false;
+bool alt_reached_goal = false;
+
+double azi_error = 0;
+double azi_previous_error = 0;
+double azi_integral = 0;
+double azi_derivative = 0;
+double azi_output = 0;
+unsigned long azi_current_time, azi_previous_time;
+double azi_elapsed_time;
+
+double alt_error = 0;
+double alt_previous_error = 0;
+double alt_integral = 0;
+double alt_derivative = 0;
+double alt_output = 0;
+unsigned long alt_current_time, alt_previous_time;
+double alt_elapsed_time;
+
+
 
 inline
 void updateAziEncoder()
@@ -107,6 +154,7 @@ void updateAltEncoder()
   Serial.println(alt_enc_val);
 }
 
+inline
 void moveMotor(bool is_azi, bool dir, int pwmValue) 
 {
   if (is_azi)
@@ -129,7 +177,7 @@ void moveMotor(bool is_azi, bool dir, int pwmValue)
   }
 }
 
-
+inline
 void stopMotor(bool is_azi) {
   if (is_azi)
   {
@@ -148,93 +196,125 @@ void stopMotor(bool is_azi) {
 
 }
 
-void moveToCalibrationSwitch(bool is_azi) {
-  if (is_azi)
+inline
+void azicalibration() {
+
+  while (digitalRead(AZI_LIM_BTN) == LOW) 
   {
-    while (digitalRead(AZI_LIM_BTN) == LOW) 
-    {
-      moveMotor(AZIMUTH, false, 5);  // Move in CW azi_direction
-    }
-    stopMotor(AZIMUTH);
-    azi_enc_val = 0;  // Reset encoder position
+    moveMotor(AZIMUTH, false, 5);  // Move in CW azi_direction
   }
-  else
+  stopMotor(AZIMUTH);
+  azi_enc_val = 0;  // Reset encoder position
+}
+inline 
+bool altcalibrationCmd()
+{
+  if (digitalRead(ALT_LIM_BTN) == LOW) 
   {
-    while (digitalRead(ALT_LIM_BTN) == LOW) 
-    {
-      moveMotor(ALTITUDE, false, 5);  // Move in CW azi_direction
-    }
+    moveMotor(ALTITUDE, false, 5);  // Move in CW azi_direction
+    return false;
+  }
+  else 
+  {
     stopMotor(ALTITUDE);
     alt_enc_val = 0;  // Reset encoder position
+    return true;
   }
 }
 
+inline
+bool aziPidCmd(int angle) {
 
-void moveToAngle(bool is_azi, int angle, double Kp, double Ki, double Kd) {
+  azi_previous_time = millis();
 
-  double error = 0;
-  double previous_error = 0;
-  double integral = 0;
-  double derivative = 0;
-  double output = 0;
+  azi_error = angle - azi_enc_val;
+  
+  // IMPORTANT - instert serial communication here
 
-  unsigned long currentTime, previousTime;
-  double elapsedTime;
-
-  int maxSpeed = 100; // Maximum speed (PWM value)
-  int minSpeed = 0;   // Minimum speed
-  int tolerance = 1;  // Tolerance in encoder units
-
-  previousTime = millis();
-
-  // Move motor until target position is reached
-  while (true) {
-    // Calculate error
-    is_azi ? error = angle - azi_enc_val : error = angle - alt_enc_val;
-    
-    // IMPORTANT - instert serial communication here
-
-    // If error is within tolerance, exit loop
-    if (abs(error) <= tolerance) {
-      break;
-    }
-
-    currentTime = millis();
-    elapsedTime = (double)(currentTime - previousTime) / 1000.0; // Convert ms to seconds
-
-    // Calculate integral
-    integral += error * elapsedTime;
-
-    // Calculate derivative
-    derivative = (error - previous_error) / elapsedTime;
-
-    // Compute PID output
-    output = Kp * error + Ki * integral + Kd * derivative;
-
-    // Constrain output to max and min speed
-    output = constrain(output, -maxSpeed, maxSpeed);
-
-    // Determine motor direction and speed
-    bool direction = output >= 0; // True for CW, False for CCW
-    int speed = abs((int)output);
-    //Serial.println(speed);
-
-    // Ensure speed is within bounds
-    speed = constrain(speed, minSpeed, maxSpeed);
-
-    // Move motor
-    moveMotor(is_azi ,direction, speed);
-
-    // Update variables for next loop
-    previous_error = error;
-    previousTime = currentTime;
-    
-    delay(5);
-
+  // If error is within tolerance, exit loop
+  if (abs(azi_error) <= TOLERANCE) {
+    return true;
   }
 
-  stopMotor(is_azi);
+  azi_current_time = millis();
+  azi_elapsed_time = (double)(azi_current_time - azi_previous_time) / 1000.0; // Convert ms to seconds
 
+  // Calculate integral
+  azi_integral += azi_error * azi_elapsed_time;
+
+  // Calculate derivative
+  azi_derivative = (azi_error - azi_previous_error) / azi_elapsed_time;
+
+  // Compute PID output
+  azi_output = AZI_KP * azi_error + AZI_KI * azi_integral + AZI_KD * azi_derivative;
+
+  // Constrain output to max and min speed
+  azi_output = constrain(azi_output, -MAX_SPEED, MAX_SPEED);
+
+  // Determine motor direction and speed
+  bool direction = azi_output >= 0; // True for CW, False for CCW
+  int speed = abs((int)azi_output);
+  //Serial.println(speed);
+
+  // Ensure speed is within bounds
+  speed = constrain(speed, MIN_SPEED, MAX_SPEED);
+
+  // Move motor
+  moveMotor(AZIMUTH ,direction, speed);
+
+  // Update variables for next loop
+  azi_previous_error = azi_error;
+  azi_previous_time = azi_current_time;
+  
+  return false;
+  //delay(5);
+}
+inline
+bool altPidCommand(int angle) {
+
+  alt_previous_time = millis();
+
+  alt_error = angle - alt_enc_val;
+  
+  // IMPORTANT - instert serial communication here
+
+  // If error is within tolerance, exit loop
+  if (abs(alt_error) <= TOLERANCE) {
+    return true;
+  }
+
+  alt_current_time = millis();
+  alt_elapsed_time = (double)(alt_current_time - alt_previous_time) / 1000.0; // Convert ms to seconds
+
+  // Calculate integral
+  alt_integral += alt_error * alt_elapsed_time;
+
+  // Calculate derivative
+  alt_derivative = (alt_error - alt_previous_error) / alt_elapsed_time;
+
+  // Compute PID output
+  alt_output = ALT_KP * alt_error + ALT_KI * alt_integral + ALT_KD * alt_derivative;
+
+  // Constrain output to max and min speed
+  alt_output = constrain(alt_output, -MAX_SPEED, MAX_SPEED);
+
+  // Determine motor direction and speed
+  bool direction = alt_output >= 0; // True for CW, False for CCW
+  int speed = abs((int)alt_output);
+  //Serial.println(speed);
+
+  // Ensure speed is within bounds
+  speed = constrain(speed, MIN_SPEED, MAX_SPEED);
+
+  // Move motor
+  moveMotor(ALTITUDE ,direction, speed);
+
+  // Update variables for next loop
+  alt_previous_error = alt_error;
+  alt_previous_time = alt_current_time;
+
+  return false;
+  //delay(5);
 }
 
 
@@ -272,7 +352,7 @@ void loop()
   /*
    * CONTROL SQUENCE
    *
-   * Callibration:
+   * calibration:
    * 1) Move azimuth to 0 position
    * 2) Move azimuth to 45 degree position and hold
    * 3) Move altitude to 0 position
@@ -280,4 +360,31 @@ void loop()
    * 
    * Operation:
    */
+  switch (state)
+  {
+  case AZI_CALIBRATION:
+    aziCalibration();
+    state++;
+    break;
+  case AZI_MOVE_45:
+    azi_reached_goal = aziPidCmd(300); // NOTE need to make function that converts ticks to degrees
+    if (azi_reached_goal)
+    {
+      state++;
+      azi_reached_goal = false;
+    }
+    break;
+  case ALT_CALIBRATION:
+    aziPidCmd(300);     // Keep azimuth steady;
+
+    alt_reached_goal = altCalibrationCmd();
+    if (alt_reached_goal)
+    {
+      state++;
+      alt_reached_goal = false;
+    }
+    break;
+  default:
+    break;
+  }
 }
