@@ -63,6 +63,9 @@ volatile long alt_enc_val       = 0;
 #define ALT_KP 2
 #define ALT_KI 0.2
 #define ALT_KD 0.2
+#define TARGET_MASK 0b0000_0011_1111_1111
+#define MOTOR_MASK  0b0000_0100_0000_0000
+
 
 
 /***********************
@@ -75,6 +78,7 @@ int state = 0;
 #define AZI_CALIBRATION 0
 #define AZI_MOVE_45     1
 #define ALT_CALIBRATION 2
+#define OPERATE         4
 
 
 
@@ -97,6 +101,7 @@ double azi_derivative = 0;
 double azi_output = 0;
 unsigned long azi_current_time, azi_previous_time;
 double azi_elapsed_time;
+int azi_target = 300; // Set this to the 45 degree angle
 
 double alt_error = 0;
 double alt_previous_error = 0;
@@ -105,6 +110,9 @@ double alt_derivative = 0;
 double alt_output = 0;
 unsigned long alt_current_time, alt_previous_time;
 double alt_elapsed_time;
+
+int alt_target = 20;
+
 
 
 
@@ -197,7 +205,7 @@ void stopMotor(bool is_azi) {
 }
 
 inline
-void azicalibration() {
+void aziCalibration() {
 
   while (digitalRead(AZI_LIM_BTN) == LOW) 
   {
@@ -207,7 +215,7 @@ void azicalibration() {
   azi_enc_val = 0;  // Reset encoder position
 }
 inline 
-bool altcalibrationCmd()
+bool altCalibrationCmd()
 {
   if (digitalRead(ALT_LIM_BTN) == LOW) 
   {
@@ -349,6 +357,8 @@ void setup() {
 
 void loop() 
 {
+  uint8_t upper_byte, lower_byte;
+  bool is_azi;
   /*
    * CONTROL SQUENCE
    *
@@ -367,7 +377,7 @@ void loop()
     state++;
     break;
   case AZI_MOVE_45:
-    azi_reached_goal = aziPidCmd(300); // NOTE need to make function that converts ticks to degrees
+    azi_reached_goal = aziPidCmd(azi_target); // NOTE need to make function that converts ticks to degrees
     if (azi_reached_goal)
     {
       state++;
@@ -384,6 +394,29 @@ void loop()
       alt_reached_goal = false;
     }
     break;
+  case OPERATE:
+      aziPidCmd(azi_target);
+      altPidCommand(alt_target);
+
+      if (Serial.available() >= 2)
+      {
+        upper_byte = Serial.read();
+        lower_byte = Serial.read();
+
+        is_azi = upper_byte >> 2;
+
+        if (is_azi)
+        {
+          azi_target = (upper_byte << 8) | (lower_byte);
+        }
+        else
+        {
+          alt_target = (upper_byte << 8) | (lower_byte);
+        }
+        
+
+      }
+    break;  
   default:
     break;
   }
