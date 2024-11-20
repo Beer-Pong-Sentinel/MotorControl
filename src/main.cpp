@@ -14,7 +14,7 @@
 #define AZI_ENC_A       PB9    // Encoder Channel A Green
 #define AZI_ENC_B       PB8    // Encoder Channel B White
 #define AZI_LIM_BTN     PB12    // Calibration switch
-#define AZI_ENC_MAX     855
+#define AZI_ENC_MAX     850
 
 /**********************
  *                    *
@@ -26,8 +26,8 @@
 #define ALT_MOTOR_DIR   PA4   // Motor azi_direction control
 #define ALT_ENC_A       PB10    // Encoder Channel A Green
 #define ALT_ENC_B       PB11   // Encoder Channel B White
-#define ALT_LIM_BTN     PA1   // Calibration switch
-#define ALT_ENC_MAX     400
+#define ALT_LIM_BTN     PA1     // Calibration switch
+#define ALT_ENC_MAX     630
 
 
 #define STATUS_LED      PC13   // Status LED
@@ -334,8 +334,8 @@ void setup() {
   pinMode(AZI_MOTOR_DIR, OUTPUT);
   pinMode(AZI_ENC_A, INPUT); 
   pinMode(AZI_ENC_B, INPUT);
-  //attachInterrupt(digitalPinToInterrupt(AZI_ENC_A), updateAziEncoder, CHANGE);
-  //attachInterrupt(digitalPinToInterrupt(AZI_ENC_B), updateAziEncoder, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(AZI_ENC_A), updateAziEncoder, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(AZI_ENC_B), updateAziEncoder, CHANGE);
   pinMode(AZI_LIM_BTN, INPUT_PULLDOWN);
 
   /* Altitude Control Setup */
@@ -374,53 +374,54 @@ void loop()
    * 
    * Operation:
    */
-  // switch (state)
-  // {
-  // case AZI_CALIBRATION:
-  //   aziCalibration();
-  //   state++;
-  //   break;
-  // case AZI_MOVE_45:
-  //   azi_reached_goal = aziPidCmd(azi_target); // NOTE need to make function that converts ticks to degrees
-  //   if (azi_reached_goal)
-  //   {
-  //     state++;
-  //     azi_reached_goal = false;
-  //   }
-  //   break;
-  // case ALT_CALIBRATION:
-  //   aziPidCmd(300);     // Keep azimuth steady;
+  switch (state)
+  {
+  case AZI_CALIBRATION:
+    aziCalibration();
+    //state++;
+    state = ALT_CALIBRATION;
+    Serial.println("zc");
+    break;
+  case AZI_MOVE_45:
+    azi_reached_goal = aziPidCmd(azi_target); // NOTE need to make function that converts ticks to degrees
+    if (azi_reached_goal)
+    {
+      state++;
+      azi_reached_goal = false;
+    }
+    break;
+  case ALT_CALIBRATION:
+    //aziPidCmd(300);     // Keep azimuth steady;
 
-  //   alt_reached_goal = altCalibrationCmd();
-  //   if (alt_reached_goal)
-  //   {
-  //     state++;
-  //     alt_reached_goal = false;
-  //   }
-  //   break;
-  // case OPERATE:
-  //     aziPidCmd(azi_target);
-  //     altPidCommand(alt_target);
+    alt_reached_goal = altCalibrationCmd();
+    if (alt_reached_goal)
+    {
+      state++;
+      alt_reached_goal = false;
+      Serial.println("tc");
+    }
+    break;
+  case OPERATE:
+      aziPidCmd(azi_target);
+      altPidCommand(alt_target);
 
-  //     if (Serial.available() >= 4)
-  //     {
-  //       azi_upper_byte = Serial.read();
-  //       azi_lower_byte = Serial.read();
-  //       alt_upper_byte = Serial.read();
-  //       alt_lower_byte = Serial.read();
+      if (Serial.available() >= 4)
+      {
+        azi_upper_byte = Serial.read();
+        azi_lower_byte = Serial.read();
+        alt_upper_byte = Serial.read();
+        alt_lower_byte = Serial.read();
 
-  //       azi_target = (azi_upper_byte << 8) | (azi_lower_byte);
-  //       alt_target = (alt_upper_byte << 8) | (alt_lower_byte);
-  //       }
-        
+        azi_target = (azi_upper_byte << 8) | (azi_lower_byte);
+        alt_target = (alt_upper_byte << 8) | (alt_lower_byte);
 
-  //     }
-  //   break;  
-  // default:
-  //   break;
-  // }
+      }
+    break;  
+  default:
+    break;
+  }
 
-  moveMotor(ALTITUDE, 1, 50);
+  //moveMotor(ALTITUDE, 1, 50);
 
   /*
    * One second intervals to send out information
@@ -430,6 +431,6 @@ void loop()
     previousMillis = currentMillis; // Update the last action time
     
     // Action to perform every second
-    Serial.println("One second has passed");
+    Serial.println(azi_enc_val);
   }
 }
