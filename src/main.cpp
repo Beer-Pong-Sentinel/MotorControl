@@ -21,9 +21,9 @@
  *   ALTITUDE PINS    *
  *                    *
  **********************/
-#define ALT_MOTOR       PA8    // PWM compatible pin for motor control
-#define ALT_MOTOR_PWM   PA_8   // Motor PWM control
-#define ALT_MOTOR_DIR   PB13   // Motor azi_direction control
+#define ALT_MOTOR       PA3    // PWM compatible pin for motor control
+#define ALT_MOTOR_PWM   PA_3   // Motor PWM control
+#define ALT_MOTOR_DIR   PA4   // Motor azi_direction control
 #define ALT_ENC_A       PB10    // Encoder Channel A Green
 #define ALT_ENC_B       PB11   // Encoder Channel B White
 #define ALT_LIM_BTN     PA1   // Calibration switch
@@ -114,7 +114,8 @@ double alt_elapsed_time;
 int alt_target = 20;
 
 
-
+unsigned long previousMillis = 0; // Stores the last time the action was performed
+const unsigned long interval = 1000; // Interval (1 second)
 
 inline
 void updateAziEncoder()
@@ -136,7 +137,7 @@ void updateAziEncoder()
 
   azi_last_enc = encoded; //store this value for next time
 
-  Serial.println(azi_last_enc);
+  //Serial.println(azi_last_enc);
 }
 
 inline
@@ -159,7 +160,7 @@ void updateAltEncoder()
 
   alt_last_enc = encoded; //store this value for next time
 
-  Serial.println(alt_enc_val);
+  //Serial.println(alt_enc_val);
 }
 
 inline
@@ -357,8 +358,11 @@ void setup() {
 
 void loop() 
 {
-  uint8_t upper_byte, lower_byte;
+  uint8_t azi_upper_byte, azi_lower_byte;
+  uint8_t alt_upper_byte, alt_lower_byte;
   bool is_azi;
+  unsigned long currentMillis = millis(); // Get the current time
+
   /*
    * CONTROL SQUENCE
    *
@@ -370,54 +374,62 @@ void loop()
    * 
    * Operation:
    */
-  switch (state)
-  {
-  case AZI_CALIBRATION:
-    aziCalibration();
-    state++;
-    break;
-  case AZI_MOVE_45:
-    azi_reached_goal = aziPidCmd(azi_target); // NOTE need to make function that converts ticks to degrees
-    if (azi_reached_goal)
-    {
-      state++;
-      azi_reached_goal = false;
-    }
-    break;
-  case ALT_CALIBRATION:
-    aziPidCmd(300);     // Keep azimuth steady;
+  // switch (state)
+  // {
+  // case AZI_CALIBRATION:
+  //   aziCalibration();
+  //   state++;
+  //   break;
+  // case AZI_MOVE_45:
+  //   azi_reached_goal = aziPidCmd(azi_target); // NOTE need to make function that converts ticks to degrees
+  //   if (azi_reached_goal)
+  //   {
+  //     state++;
+  //     azi_reached_goal = false;
+  //   }
+  //   break;
+  // case ALT_CALIBRATION:
+  //   aziPidCmd(300);     // Keep azimuth steady;
 
-    alt_reached_goal = altCalibrationCmd();
-    if (alt_reached_goal)
-    {
-      state++;
-      alt_reached_goal = false;
-    }
-    break;
-  case OPERATE:
-      aziPidCmd(azi_target);
-      altPidCommand(alt_target);
+  //   alt_reached_goal = altCalibrationCmd();
+  //   if (alt_reached_goal)
+  //   {
+  //     state++;
+  //     alt_reached_goal = false;
+  //   }
+  //   break;
+  // case OPERATE:
+  //     aziPidCmd(azi_target);
+  //     altPidCommand(alt_target);
 
-      if (Serial.available() >= 2)
-      {
-        upper_byte = Serial.read();
-        lower_byte = Serial.read();
+  //     if (Serial.available() >= 4)
+  //     {
+  //       azi_upper_byte = Serial.read();
+  //       azi_lower_byte = Serial.read();
+  //       alt_upper_byte = Serial.read();
+  //       alt_lower_byte = Serial.read();
 
-        is_azi = upper_byte >> 2;
-
-        if (is_azi)
-        {
-          azi_target = (upper_byte << 8) | (lower_byte);
-        }
-        else
-        {
-          alt_target = (upper_byte << 8) | (lower_byte);
-        }
+  //       azi_target = (azi_upper_byte << 8) | (azi_lower_byte);
+  //       alt_target = (alt_upper_byte << 8) | (alt_lower_byte);
+  //       }
         
 
-      }
-    break;  
-  default:
-    break;
+  //     }
+  //   break;  
+  // default:
+  //   break;
+  // }
+
+  moveMotor(ALTITUDE, 1, 50);
+
+  /*
+   * One second intervals to send out information
+   */
+  if (currentMillis - previousMillis >= interval) 
+  {
+    previousMillis = currentMillis; // Update the last action time
+    
+    // Action to perform every second
+    Serial.println("One second has passed");
   }
 }
