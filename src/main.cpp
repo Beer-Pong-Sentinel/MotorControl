@@ -44,9 +44,10 @@ int           azi_cal_btn       = 0;
 volatile int  azi_last_enc      = 0;
 volatile long azi_enc_val       = 0;
 
-#define AZI_KP 2
-#define AZI_KI 0.2
-#define AZI_KD 0.2
+#define AZI_KP        2
+#define AZI_KI        0
+#define AZI_KD        0
+#define AZI_INIT_POS  300
 
 
 /***********************
@@ -60,11 +61,10 @@ int           alt_cal_btn       = 0;
 volatile int  alt_last_enc      = 0;
 volatile long alt_enc_val       = 0;
 
-#define ALT_KP 2
-#define ALT_KI 0.2
-#define ALT_KD 0.2
-#define TARGET_MASK 0b0000_0011_1111_1111
-#define MOTOR_MASK  0b0000_0100_0000_0000
+#define ALT_KP        1
+#define ALT_KI        0
+#define ALT_KD        0
+#define ALT_INIT_POS  20
 
 
 
@@ -87,31 +87,31 @@ int state = 0;
  *     PID CONTROL     * 
  *                     *
  **********************/
-#define MAX_SPEED 100  // Maximum speed (PWM value)
+#define MAX_SPEED 75  // Maximum speed (PWM value)
 #define MIN_SPEED 0    // Minimum speed
 #define TOLERANCE 1    // Tolerance in encoder units
 
 bool azi_reached_goal = false;
 bool alt_reached_goal = false;
 
-double azi_error = 0;
-double azi_previous_error = 0;
-double azi_integral = 0;
-double azi_derivative = 0;
-double azi_output = 0;
-unsigned long azi_current_time, azi_previous_time;
-double azi_elapsed_time;
-int azi_target = 300; // Set this to the 45 degree angle
+volatile double azi_error = 0;
+volatile double azi_previous_error = 0;
+volatile double azi_integral = 0;
+volatile double azi_derivative = 0;
+volatile double azi_output = 0;
+volatile unsigned long azi_current_time = 0, azi_previous_time = millis();
+volatile double azi_elapsed_time = 1e-6;
+volatile int azi_target = AZI_INIT_POS; // Set this to the 45 degree angle
 
-double alt_error = 0;
-double alt_previous_error = 0;
-double alt_integral = 0;
-double alt_derivative = 0;
-double alt_output = 0;
-unsigned long alt_current_time, alt_previous_time;
-double alt_elapsed_time;
+volatile double alt_error = 0;
+volatile double alt_previous_error = 0;
+volatile double alt_integral = 0;
+volatile double alt_derivative = 0;
+volatile double alt_output = 0;
+volatile unsigned long alt_current_time = 0, alt_previous_time = millis();
+volatile double alt_elapsed_time = 1e-6;
 
-int alt_target = 20;
+int alt_target = ALT_INIT_POS;
 
 
 unsigned long previousMillis = 0; // Stores the last time the action was performed
@@ -210,7 +210,7 @@ void aziCalibration() {
 
   while (digitalRead(AZI_LIM_BTN) == LOW) 
   {
-    moveMotor(AZIMUTH, false, 5);  // Move in CW azi_direction
+    moveMotor(AZIMUTH, false, 3);  // Move in CW azi_direction
   }
   stopMotor(AZIMUTH);
   azi_enc_val = 0;  // Reset encoder position
@@ -233,8 +233,6 @@ bool altCalibrationCmd()
 
 inline
 bool aziPidCmd(int angle) {
-
-  azi_previous_time = millis();
 
   azi_error = angle - azi_enc_val;
   
@@ -276,12 +274,12 @@ bool aziPidCmd(int angle) {
   azi_previous_time = azi_current_time;
   
   return false;
-  //delay(5);
+  delay(5);
 }
 inline
 bool altPidCommand(int angle) {
 
-  alt_previous_time = millis();
+  //alt_previous_time = millis();
 
   alt_error = angle - alt_enc_val;
   
@@ -323,7 +321,7 @@ bool altPidCommand(int angle) {
   alt_previous_time = alt_current_time;
 
   return false;
-  //delay(5);
+  delay(5);
 }
 
 
@@ -378,15 +376,14 @@ void loop()
   {
   case AZI_CALIBRATION:
     aziCalibration();
-    //state++;
-    state = ALT_CALIBRATION;
-    Serial.println("zc");
+    state++;
+    //state = ALT_CALIBRATION;
     break;
   case AZI_MOVE_45:
     azi_reached_goal = aziPidCmd(azi_target); // NOTE need to make function that converts ticks to degrees
     if (azi_reached_goal)
     {
-      state++;
+      //state++;
       azi_reached_goal = false;
     }
     break;
@@ -398,7 +395,6 @@ void loop()
     {
       state++;
       alt_reached_goal = false;
-      Serial.println("tc");
     }
     break;
   case OPERATE:
@@ -431,6 +427,9 @@ void loop()
     previousMillis = currentMillis; // Update the last action time
     
     // Action to perform every second
+    Serial.println(azi_output);
     Serial.println(azi_enc_val);
+    Serial.println(azi_error);
+
   }
 }
