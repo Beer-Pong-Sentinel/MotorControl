@@ -41,8 +41,8 @@
 int           azi_cal_btn       = 0;
 volatile int  azi_last_enc      = 0;
 volatile long azi_enc_val       = 0;
-bool azi_direction     = 0; // True for CW, False for CCW
-int azi_speed          = 0;
+bool          azi_direction     = 0; // True for CW, False for CCW
+int           azi_speed         = 0;
 
 #define AZI_KP        0.1
 #define AZI_KI        0.0
@@ -58,12 +58,12 @@ int azi_speed          = 0;
 int           alt_cal_btn       = 0;
 volatile int  alt_last_enc      = 0;
 volatile long alt_enc_val       = 0;
-bool alt_direction     = 0; // True for CW, False for CCW
-int alt_speed          = 0;
+bool          alt_direction     = 0; // True for CW, False for CCW
+int             alt_speed       = 0;
 
-#define ALT_KP        1.5
-#define ALT_KI        1
-#define ALT_KD        2.1
+#define ALT_KP        1
+#define ALT_KI        0
+#define ALT_KD        0
 #define ALT_INIT_POS  300
 #define ALT_SEC_POS   100
 
@@ -74,12 +74,14 @@ int alt_speed          = 0;
  *     STATE FLOW      * 
  *                     *
  **********************/
-#define AZI_HOMING 0
+#define AZI_HOMING      0
 #define AZI_MOVE_45     1
-#define ALT_HOMING 2
+#define ALT_HOMING      2
 #define ALT_INIT        3
 #define ALT_SEC         4
 #define OPERATE         5
+
+bool is_new_data = false;
 
 int state = AZI_HOMING;
 
@@ -91,7 +93,7 @@ int state = AZI_HOMING;
  **********************/
 #define MAX_SPEED 15  // Maximum speed (PWM value)
 #define MIN_SPEED 0    // Minimum speed
-#define TOLERANCE 2    // Tolerance in encoder units
+#define TOLERANCE 1    // Tolerance in encoder units
 #define ALT_TOLERANCE 2
 
 bool azi_reached_goal = false;
@@ -222,7 +224,7 @@ void aziHoming() {
 
   while (digitalRead(AZI_LIM_BTN) == LOW) 
   {
-    moveMotor(AZIMUTH, false, 7);  // Move in CW azi_direction
+    moveMotor(AZIMUTH, false, 5);  // Move in CW azi_direction
   }
   stopMotor(AZIMUTH);
   azi_enc_val = 0;  // Reset encoder position
@@ -323,29 +325,40 @@ bool altPidCommand(int angle) {
   return false;
 }
 
-// void receiveData()
-// {
-//   uint8_t azi_upper_byte, azi_lower_byte;
-//   uint8_t alt_upper_byte, alt_lower_byte;
-//       if (Serial.available() >= 4)
-//       {
-//         azi_upper_byte = Serial.read();
-//         azi_lower_byte = Serial.read();
-//         alt_upper_byte = Serial.read();
-//         alt_lower_byte = Serial.read();
+void receiveData()
+{
+  uint8_t azi_upper_byte, azi_lower_byte;
+  uint8_t alt_upper_byte, alt_lower_byte;
+      if (Serial.available() >= 4)
+      {
+        azi_upper_byte = Serial.read();
+        azi_lower_byte = Serial.read();
+        alt_upper_byte = Serial.read();
+        alt_lower_byte = Serial.read();
 
-//         azi_target = (azi_upper_byte << 8) | (azi_lower_byte);
-//         alt_target = (alt_upper_byte << 8) | (alt_lower_byte);
-//         Serial.write(azi_upper_byte); 
-//         delayMicroseconds(10);
-//         Serial.write(azi_lower_byte);
-//         delayMicroseconds(10);
-//         Serial.write(alt_upper_byte); 
-//         delayMicroseconds(10);
-//         Serial.write(alt_lower_byte);
+        azi_target = (azi_upper_byte << 8) | (azi_lower_byte);
+        alt_target = (alt_upper_byte << 8) | (alt_lower_byte);
 
-//       }
-// }
+        is_new_data = true;
+      }
+}
+
+void send_azi()
+{
+  Serial.write((azi_enc_val >> 8) & 0xff);
+  delayMicroseconds(10);
+  Serial.write(azi_enc_val & 0xff);
+  delayMicroseconds(10);
+
+}
+void send_alt()
+{  
+  Serial.write((alt_enc_val >> 8) & 0xff);
+  delayMicroseconds(10);
+  Serial.write(azi_enc_val & 0xff);
+  delayMicroseconds(10);
+
+}
 
 void setup() {
 
@@ -445,6 +458,12 @@ void loop()
       azi_reached_goal = aziPidCmd(azi_target);
       if (alt_reached_goal == true && azi_reached_goal == true)
       {
+        if (is_new_data)
+        {
+          send_azi();
+          send_alt();
+          is_new_data = false;
+        }
         stopMotor(AZIMUTH);
         stopMotor(ALTITUDE);
       }
@@ -456,16 +475,11 @@ void loop()
   /*
    * One second intervals to send out information
    */
-  // if (currentMillis - previousMillis >= interval) 
-  // {
-  //   previousMillis = currentMillis; // Update the last action time
+  if (currentMillis - previousMillis >= interval) 
+  {
+    previousMillis = currentMillis; // Update the last action time
     
-  //   // Action to perform every second
-  //   Serial.println(alt_enc_val);
-  //   Serial.println(alt_speed);
-  //   Serial.println(alt_direction);
-  //   Serial.println(alt_error);
-  //   Serial.println(alt_target);
+    receiveData();    
 
-  // }
+  }
 }
