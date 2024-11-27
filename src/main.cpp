@@ -13,7 +13,7 @@
 #define AZI_MOTOR_DIR   PB13   // Motor azi_direction control
 #define AZI_ENC_A       PB9    // Encoder Channel A Green
 #define AZI_ENC_B       PB8    // Encoder Channel B White
-#define AZI_LIM_BTN     PB12    // Calibration switch
+#define AZI_LIM_BTN     PB12    // Limit switch
 #define AZI_ENC_MAX     850
 
 /**********************
@@ -26,7 +26,7 @@
 #define ALT_MOTOR_DIR   PA4   // Motor azi_direction control
 #define ALT_ENC_A       PB10    // Encoder Channel A Green
 #define ALT_ENC_B       PB11   // Encoder Channel B White
-#define ALT_LIM_BTN     PA1     // Calibration switch
+#define ALT_LIM_BTN     PA1     // Limit switch
 #define ALT_ENC_MAX     630
 
 
@@ -74,14 +74,14 @@ int alt_speed          = 0;
  *     STATE FLOW      * 
  *                     *
  **********************/
-#define AZI_CALIBRATION 0
+#define AZI_HOMING 0
 #define AZI_MOVE_45     1
-#define ALT_CALIBRATION 2
+#define ALT_HOMING 2
 #define ALT_INIT        3
 #define ALT_SEC         4
 #define OPERATE         5
 
-int state = AZI_CALIBRATION;
+int state = AZI_HOMING;
 
 
 /***********************
@@ -393,7 +393,7 @@ void loop()
    */
   switch (state)
   {
-  case AZI_CALIBRATION:
+  case AZI_HOMING:
     aziHoming(); // Blocking function
     state = AZI_MOVE_45;
     break;
@@ -402,12 +402,12 @@ void loop()
 
     if (azi_reached_goal)
     {
-      state = ALT_CALIBRATION;
+      state = ALT_HOMING;
       azi_reached_goal = false;
       stopMotor(AZIMUTH);
     }
     break;
-  case ALT_CALIBRATION:
+  case ALT_HOMING:
     aziPidCmd(azi_target);     // Keep azimuth steady while altitude is homing 
 
     alt_reached_goal = altHomingCmd();
