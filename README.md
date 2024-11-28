@@ -6,7 +6,7 @@ This repositroy contains all files and code related to controling the motors
 We are using a 2 phase rotery encoder. Serial Number - C38S6G5-600B-G24N.
 ([datasheet](https://www.google.com/search?q=C38S6G5-600B-G24N&rlz=1C5CHFA_enJP1059JP1059&oq=C38S6G5-600B-G24N&gs_lcrp=EgZjaHJvbWUqBggAEEUYOzIGCAAQRRg7MgkIARAAGAoYgAQyBggCEEUYQDIJCAMQABgKGIAEMgYIBBAAGB4yCggFEAAYgAQYogTSAQcxNDZqMGo3qAIAsAIA&sourceid=chrome&ie=UTF-8))
 See the following link to understand how they work or ask ChatGPT it gives a good explantion.
-[https://www.dynapar.com/technology/encoder_basics/quadrature_encoder/](how they work)
+[how they work](https://www.dynapar.com/technology/encoder_basics/quadrature_encoder/)
 
 
 ### Important Information
