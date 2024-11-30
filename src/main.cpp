@@ -44,9 +44,9 @@ volatile long azi_enc_val       = 0;
 bool          azi_direction     = 0; // True for CW, False for CCW
 int           azi_speed         = 0;
 
-#define AZI_KP        0.1
-#define AZI_KI        0.0
-#define AZI_KD        0.01
+#define AZI_KP        1.2
+#define AZI_KI        0.
+#define AZI_KD        0
 #define AZI_INIT_POS  420
 
 
@@ -91,9 +91,10 @@ int state = AZI_HOMING;
  *     PID CONTROL     * 
  *                     *
  **********************/
-#define MAX_SPEED 15  // Maximum speed (PWM value)
+#define AZI_MAX_SPEED 80  // Maximum speed (PWM value)
+#define ALT_MAX_SPEED 15
 #define MIN_SPEED 0    // Minimum speed
-#define TOLERANCE 1    // Tolerance in encoder units
+#define TOLERANCE 2    // Tolerance in encoder units
 #define ALT_TOLERANCE 2
 
 bool azi_reached_goal = false;
@@ -124,6 +125,11 @@ const unsigned long interval = 1000; // Interval (1 second)
 inline
 void updateAziEncoder()
 {
+  if (digitalRead(AZI_LIM_BTN) == HIGH) 
+  {
+    azi_enc_val = 0;
+    return;
+  }
   int msb = digitalRead(AZI_ENC_A); //MSB = most significant bit
   int lsb = digitalRead(AZI_ENC_B); //LSB = least significant bit
 
@@ -147,6 +153,11 @@ void updateAziEncoder()
 inline
 void updateAltEncoder()
 {
+  if (digitalRead(ALT_LIM_BTN) == HIGH) 
+  {
+    alt_enc_val = 0;
+    return;
+  }
   int msb = digitalRead(ALT_ENC_A); //MSB = most significant bit
   int lsb = digitalRead(ALT_ENC_B); //LSB = least significant bit
 
@@ -224,7 +235,7 @@ void aziHoming() {
 
   while (digitalRead(AZI_LIM_BTN) == LOW) 
   {
-    moveMotor(AZIMUTH, false, 5);  // Move in CW azi_direction
+    moveMotor(AZIMUTH, false, 6);  // Move in CW azi_direction
   }
   stopMotor(AZIMUTH);
   azi_enc_val = 0;  // Reset encoder position
@@ -271,7 +282,7 @@ bool aziPidCmd(int angle) {
   azi_output = AZI_KP * azi_error + AZI_KI * azi_integral + AZI_KD * azi_derivative;
 
   // Constrain output to max and min speed
-  azi_output = constrain(azi_output, -MAX_SPEED, MAX_SPEED);
+  azi_output = constrain(azi_output, -AZI_MAX_SPEED, AZI_MAX_SPEED);
 
   // Determine motor direction and speed
   azi_direction = azi_output >= 0; // True for CW, False for CCW
@@ -308,7 +319,7 @@ bool altPidCommand(int angle) {
   alt_output = ALT_KP * alt_error + ALT_KI * alt_integral + ALT_KD * alt_derivative;
 
   // Constrain output to max and min speed
-  alt_output = constrain(alt_output, -MAX_SPEED, MAX_SPEED);
+  alt_output = constrain(alt_output, -ALT_MAX_SPEED, ALT_MAX_SPEED);
 
   // Determine motor direction and speed
   alt_direction = alt_output >= 0; // True for CW, False for CCW
@@ -324,6 +335,22 @@ bool altPidCommand(int angle) {
 
   return false;
 }
+void send_azi()
+{
+  Serial.write((azi_enc_val >> 8) & 0xff);
+  delay(10);
+  Serial.write(azi_enc_val & 0xff);
+  delay(10);
+
+}
+void send_alt()
+{  
+  Serial.write((alt_enc_val >> 8) & 0xff);
+  delay(10);
+  Serial.write(alt_enc_val & 0xff);
+  delay(10);
+
+}
 
 void receiveData()
 {
@@ -336,6 +363,13 @@ void receiveData()
         alt_upper_byte = Serial.read();
         alt_lower_byte = Serial.read();
 
+        if (azi_upper_byte == 255) 
+        {
+            send_azi();
+            send_alt();
+            return;
+        }
+
         azi_target = (azi_upper_byte << 8) | (azi_lower_byte);
         alt_target = (alt_upper_byte << 8) | (alt_lower_byte);
 
@@ -343,22 +377,7 @@ void receiveData()
       }
 }
 
-void send_azi()
-{
-  Serial.write((azi_enc_val >> 8) & 0xff);
-  delayMicroseconds(10);
-  Serial.write(azi_enc_val & 0xff);
-  delayMicroseconds(10);
 
-}
-void send_alt()
-{  
-  Serial.write((alt_enc_val >> 8) & 0xff);
-  delayMicroseconds(10);
-  Serial.write(azi_enc_val & 0xff);
-  delayMicroseconds(10);
-
-}
 
 void setup() {
 
@@ -382,7 +401,7 @@ void setup() {
 
   pinMode(STATUS_LED, OUTPUT);
   
-  Serial.begin(9600);
+  Serial.begin(115200);
 
 }
 
@@ -456,14 +475,19 @@ void loop()
     case OPERATE:
       alt_reached_goal = altPidCommand(alt_target);
       azi_reached_goal = aziPidCmd(azi_target);
-      if (alt_reached_goal == true && azi_reached_goal == true)
+      if (alt_enc_val <= alt_target+5 && alt_enc_val >= alt_target-5 &&
+          azi_enc_val <= azi_target+5 && azi_enc_val >= azi_target-5)
       {
-        if (is_new_data)
+        if(is_new_data)
         {
+          delay(10);
           send_azi();
           send_alt();
-          is_new_data = false;
+          Serial.flush();
+          is_new_data = false;          
         }
+
+        
         stopMotor(AZIMUTH);
         stopMotor(ALTITUDE);
       }
@@ -479,7 +503,8 @@ void loop()
   {
     previousMillis = currentMillis; // Update the last action time
     
-    receiveData();    
+    receiveData(); 
+    //Serial.println(azi_enc_val) ;  
 
   }
 }
