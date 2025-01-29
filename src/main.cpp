@@ -44,9 +44,9 @@ volatile long azi_enc_val       = 0;
 bool          azi_direction     = 0; // True for CW, False for CCW
 int           azi_speed         = 0;
 
-#define AZI_KP        1.2
-#define AZI_KI        0.
-#define AZI_KD        0
+#define AZI_KP        1
+#define AZI_KI        0.0
+#define AZI_KD        0.01
 #define AZI_INIT_POS  420
 
 
@@ -63,7 +63,7 @@ int             alt_speed       = 0;
 
 #define ALT_KP        1
 #define ALT_KI        0
-#define ALT_KD        0
+#define ALT_KD        0.
 #define ALT_INIT_POS  300
 #define ALT_SEC_POS   100
 
@@ -92,9 +92,10 @@ int state = AZI_HOMING;
  *                     *
  **********************/
 #define AZI_MAX_SPEED 80  // Maximum speed (PWM value)
-#define ALT_MAX_SPEED 15
+#define AZI_MIN_SPEED 6
+#define ALT_MAX_SPEED 80
 #define MIN_SPEED 0    // Minimum speed
-#define TOLERANCE 2    // Tolerance in encoder units
+#define AZI_TOLERANCE 2    // Tolerance in encoder units
 #define ALT_TOLERANCE 2
 
 bool azi_reached_goal = false;
@@ -235,7 +236,7 @@ void aziHoming() {
 
   while (digitalRead(AZI_LIM_BTN) == LOW) 
   {
-    moveMotor(AZIMUTH, false, 6);  // Move in CW azi_direction
+    moveMotor(AZIMUTH, false, AZI_MIN_SPEED);  // Move in CW azi_direction
   }
   stopMotor(AZIMUTH);
   azi_enc_val = 0;  // Reset encoder position
@@ -265,7 +266,7 @@ bool aziPidCmd(int angle) {
   // IMPORTANT - instert serial communication here
 
   // If error is within tolerance, exit loop
-  if (abs(azi_error) <= TOLERANCE) {
+  if (abs(azi_error) <= AZI_TOLERANCE) {
     return true;
   }
 
@@ -286,7 +287,7 @@ bool aziPidCmd(int angle) {
 
   // Determine motor direction and speed
   azi_direction = azi_output >= 0; // True for CW, False for CCW
-  azi_speed = abs((int)azi_output);
+  azi_speed = constrain(abs((int)azi_output), AZI_MIN_SPEED, AZI_MAX_SPEED);
 
   // Update variables for next command
   azi_previous_error = azi_error;
